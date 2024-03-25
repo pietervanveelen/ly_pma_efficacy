@@ -1,0 +1,3 @@
+﻿"term","npar","logLik","AIC","LRT","df","p.value","sig","p.value.format"
+"<none>",14,-66.77,161.54,NA,NA,NA,"","      NA"
+"(1 | date)",13,-69.784,165.568,6.028,1,0.014,"*","1.41e-02"

@@ -1,0 +1,4 @@
+﻿"exp_id","term","contrast","null.value","estimate","std.error","df","statistic","p.value","p.value.format"
+"E.coli_low","pma","none - PMA",0,-0.009,0.003,60.006,-2.673,0.01,"9.66e-03"
+"E.coli_medium","pma","none - PMA",0,-0.018,0.003,60.006,-5.308,0,"1.70e-06"
+"E.coli_high","pma","none - PMA",0,-0.023,0.003,60.006,-6.814,0,"5.20e-09"
