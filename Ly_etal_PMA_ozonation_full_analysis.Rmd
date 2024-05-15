@@ -60,7 +60,7 @@ pal = c("#8ACDEA", "#FCB97D","#2AB7CA","grey10","#F3B61F", "#2E86AB","#F56476")
 ## Testing PMA pre-treatment efficacy with different life/dead proportions of 4 bacterial species, 2 type strains G+ and G-, and 2 isolates from ozonated wastewater
 
 # read qPCR data for Exp. I
-data = openxlsx::read.xlsx("/Users/pvee/OneDrive - Wetsus/General - PMA treatment in molecular analyses/qPCR/PMA_data_qPCR.xlsx") %>% as_tibble()
+data = openxlsx::read.xlsx("input_data/Exp1.1_PMA_data_qPCR.xlsx") %>% as_tibble()
 data = 
   data %>% mutate(exp_id = str_sub(exp_date, start = 12),
                   date = lubridate::ymd(str_sub(exp_date, start = 1, end = 10)))
@@ -87,7 +87,7 @@ data_clean =
   mutate(log_sq_calc_mean = log(sq_calc_mean, 10))
 
 # import data for different starting cell concentrations
-data_exp1 = openxlsx::read.xlsx("~/OneDrive - Wetsus/General - PMA treatment in molecular analyses/internships/Nick Middelbos/Resultaten/qPCR/final_databases/NMID_Exp1_Cell_density_effect_Ecoli_KOSIdata_added_v2.xlsx") %>% 
+data_exp1 = openxlsx::read.xlsx("input_data/Exp1.2_Cell_density_effect_Ecoli.xlsx") %>% 
   as_tibble(rownames = "row.names") %>% 
   rename(conc = prop_life, pma = PMA, sq_calc = copies_ml) %>% 
   mutate(pma = if_else(pma == "no_PMA", "no PMA", pma),
