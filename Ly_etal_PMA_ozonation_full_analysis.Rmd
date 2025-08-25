@@ -87,7 +87,7 @@ data_clean =
   mutate(log_sq_calc_mean = log(sq_calc_mean, 10))
 
 # import data for different starting cell concentrations
-data_exp1 = openxlsx::read.xlsx("input_data/Exp1.2_Cell_density_effect_Ecoli.xlsx") %>% 
+data_exp1 = openxlsx::read.xlsx("input_data/Exp1.2_Cell_density_effect_Ecoli_cq_replaced.xlsx") %>% 
   as_tibble(rownames = "row.names") %>% 
   rename(conc = prop_life, pma = PMA, sq_calc = copies_ml) %>% 
   mutate(pma = if_else(pma == "no_PMA", "no PMA", pma),
@@ -96,7 +96,7 @@ data_exp1 = openxlsx::read.xlsx("input_data/Exp1.2_Cell_density_effect_Ecoli.xls
 
 
 
-### Experiment II #####
+### Experiment III #####
 
 ## Application of PMA pretreatment to spiked ozonated wastewater effluent
 
@@ -142,6 +142,12 @@ qPCR_final_data <-
 
 
 ```
+```{r check sampling within std curves}
+
+
+
+```
+
 
 ```{r ExpII_extract_high_E.coli, warning=F, message=F}
 
@@ -158,16 +164,17 @@ data_clean %>%
          pma = as.character(pma))
 
 
+
 # Reshape data maipulated starting concentrations
 data_clean3 = 
-data_exp1 %>%
-  group_by(pma, conc, exp_id, date) %>% 
-  reframe(sq_calc_mean = mean(sq_calc)*DNA_diluted, sq_calc_sd = sd(sq_calc),
+  data_exp1 %>% 
+    group_by(pma, conc, exp_id, date) %>% 
+    reframe(sq_calc_mean = mean(sq_calc)*DNA_diluted, sq_calc_sd = sd(sq_calc),
             ct_calc_mean = mean(Ct)*DNA_diluted, ct_calc_sd = sd(Ct)) %>% 
     mutate(conc = ifelse(conc == 0, 0.01, conc),
          log_conc = log10(conc),
          log_sq_calc_mean = log10(sq_calc_mean),
-         date= as.factor(date)) 
+         date= as.factor(date))
       
 # Combine Ecoli high concentration data with manipulated starting concentrations
 data_clean4 =
@@ -178,6 +185,145 @@ data_clean4 =
     dplyr::select(date, pma, conc, exp_id, log_sq_calc_mean)
   ) %>% 
     mutate(pma = factor(if_else(pma == "no PMA", "none", pma)))
+
+```
+
+```{r standard curves and check DL }
+
+data_expII_lowconc = 
+  read_csv2("input_data/raw_qPCR_data/E.coli_10^5_PMA_17-3-2023_NMID -  Quantification Cq Results.csv") %>% 
+  janitor::clean_names() %>%
+  mutate(exp_id = "E.coli_low") %>% 
+  filter(!well %in% c("B11", "C02", "C05", "C06", "C10", "E05")) %>% 
+  mutate(type = case_when(grepl("^Std", content) ~ "standard",
+                           grepl("^Unk", content) ~ "sample",
+                           grepl("NTC", content) ~ "blank_ntc",
+                                 TRUE ~ NA_character_))
+
+data_expII_midconc = 
+  read_csv2("input_data/raw_qPCR_data/admin_2023-02-28 14-50-14_CT008763 -  Quantification Cq Results.csv", col_select = -1) %>% 
+  janitor::clean_names() %>%
+  mutate(exp_id = "E.coli_mid") %>% 
+  filter(!well %in% c("D07", "D08", "D10", "D11", "D12", "E01", "E02")) %>% 
+  mutate(type = case_when(grepl("^Std", content) ~ "standard",
+                           grepl("^Unk", content) ~ "sample",
+                           grepl("NTC", content) ~ "blank_ntc",
+                                 TRUE ~ NA_character_))
+
+data_replacement_lowconc = 
+  read_csv2("input_data/raw_qPCR_data/NMID_22032023_NTC_controle -  Quantification Cq Results.csv", col_select = -1) %>% 
+  janitor::clean_names() %>%
+  mutate(exp_id = "E.coli_low") %>% 
+  filter(grepl("Std|NTC", content) |  well %in% c(paste0("E0", seq(1:6)))) %>%
+  filter(!well %in% c("A01", "A02")) %>% 
+  mutate(type = case_when(grepl("^Std", content) ~ "standard",
+                           grepl("^Unk", content) ~ "sample",
+                           grepl("NTC", content) ~ "blank_ntc",
+                                 TRUE ~ NA_character_))
+
+
+data_replacement_midconc3.0= 
+  read_csv("input_data/raw_qPCR_data/NMID_29032023_PMA_effluent_16s_ybbw -  Quantification Cq Results 3.0.csv", col_select = -1) %>% 
+  janitor::clean_names() %>%
+  mutate(exp_id = "E.coli_mid") %>% 
+  filter(grepl("Std|NTC", content) |  well %in% c(paste0("G0", seq(1:7)))) %>%
+  mutate(type = case_when(grepl("^Std", content) ~ "standard",
+                           grepl("^Unk", content) ~ "sample",
+                           grepl("NTC", content) ~ "blank_ntc",
+                                 TRUE ~ NA_character_))
+
+# Some wells had to be redone: Low starting quantity B11, C2, C5, C6, C10, E5; Medium starting quantity: D7, D8, D10, D11, D12, E1, E2
+# data_redo_some_wells =
+#   read_csv2("input_data/raw_qPCR_data/NMID_22032023_NTC_controle -  Quantification Cq Results.csv", col_select = -1) %>%
+#   filter(grepl("Std|NTC", Content) |  Well %in% c(paste0("E0", seq(1:6)))) %>%
+#     janitor::clean_names() %>%
+#     mutate(type = case_when(grepl("^Std", content) ~ "standard",
+#                           grepl("^Unk", content) ~ "sample",
+#                           grepl("NTC", content) ~ "blank_ntc",
+#                                 TRUE ~ NA_character_)) %>% 
+# bind_rows(
+#   read_csv2("input_data/raw_qPCR_data/admin_2023-02-28 14-50-14_CT008763 -  Quantification Cq Results_cts_replaced.csv") %>%
+#   filter(grepl("Std|NTC", Content) |  Well %in% c("D07", "D08", "D10", "D11", "D12", "E01", "E02")) %>%
+#   janitor::clean_names() %>%
+#   mutate(type = case_when(grepl("^Std", content) ~ "standard",
+#                           grepl("^Unk", content) ~ "sample",
+#                           grepl("NTC", content) ~ "blank_ntc",
+#                                 TRUE ~ NA_character_))
+#   )
+
+
+data_expII_low_mid = 
+  bind_rows(data_expII_lowconc %>% 
+              mutate(exp_id = "E.coli_low") %>% 
+              janitor::clean_names() %>% 
+              mutate(cq = case_when(exp_id == "E.coli_low" & well == "E05" ~ data_replacement_lowconc %>% filter(well == "E06") %>% pull(cq), TRUE ~ cq)) %>% 
+              mutate(starting_quantity_sq = case_when(exp_id == "E.coli_low" & well == "E05" ~ data_replacement_lowconc %>% filter(well == "E06") %>% pull(starting_quantity_sq), TRUE ~ starting_quantity_sq)) %>% 
+              mutate(log_starting_quantity = log10(starting_quantity_sq)),
+           data_expII_midconc %>% 
+             mutate(exp_id = "E.coli_medium") %>% 
+             janitor::clean_names() %>% 
+             mutate(type = case_when(grepl("^Std", content) ~ "standard",
+                                     grepl("^Unk", content) ~ "sample",
+                                     grepl("NTC", content) ~ "blank_ntc",
+                                     TRUE ~ NA_character_))
+           ) 
+
+# standard curve 
+std_low_plot = 
+data_expII_lowconc %>%
+  ggplot(aes(x = log_starting_quantity, y = cq)) +
+  geom_smooth(data = filter(data_expII_lowconc, type == "standard"), method = "lm", se = F) +
+  geom_point(aes(color = type, shape = type), size = 2, alpha = 0.7) +
+  ggtitle("low_conc") +
+  theme_light()
+
+std_mid_plot = 
+data_expII_midconc %>%
+  ggplot(aes(x = log_starting_quantity, y = cq)) +
+  geom_smooth(data = filter(data_expII_midconc, type == "standard"), method = "lm", se = F) +
+  geom_point(aes(color = type, shape = type), size = 2, alpha = 0.7) +
+  ggtitle("mid_conc") +
+  theme_light()
+
+std_low_repl_plot = 
+data_replacement_lowconc %>% 
+  ggplot(aes(x = log_starting_quantity, y = cq)) +
+  geom_smooth(data = filter(data_expII_lowconc, type == "standard"), method = "lm", se = F) +
+  geom_point(aes(color = type, shape = type), size = 2, alpha = 0.7) +
+  ggtitle("low_conc_replac") +
+  theme_light()
+
+std_mid_repl_plot = 
+data_replacement_midconc3.0 %>% 
+  ggplot(aes(x = log_starting_quantity, y = cq)) +
+  geom_smooth(data = filter(data_replacement_midconc3.0, type == "standard"), method = "lm", se = F) +
+  geom_point(aes(color = type, shape = type), size = 2, alpha = 0.7) +
+  ggtitle("mid_conc_replac") +
+  theme_light()
+
+
+patchwork::wrap_plots(std_low_plot, std_low_repl_plot, std_mid_plot, std_mid_repl_plot)
+
+ggsave("figures/detection_limit_check_std_curves_expII.pdf", width = 7, height = 5)
+
+# data_expII_low_mid %>% filter(is.na(type))
+#   select(well,cq, starting_quantity_sq, log_starting_quantity, sq_mean, exp_id, type) %>% 
+#   mutate(exp_id = as.character(exp_id)) %>% 
+#   left_join(., 
+#              data_exp1 %>% 
+#                select(exp_id, well = "well_id", date, biol_rep, conc, pma, DNA_diluted, cq = "Ct", tech_duplo, copies_100ml, sq_calc) %>% 
+#                mutate(letter = str_match(well, "^([A-H])")[,2],
+#                       number = str_match(well, "^.[0-9]+$")[,1] %>% str_extract("[0-9]+") %>% str_pad(2, pad = "0"),
+#                       well = paste0(letter, number)),
+#              by = c("well", "exp_id")) %>% 
+#   filter(!(type == "sample" & is.na(conc))) %>%
+#   rename(cq = "cq.x") %>% 
+#   ggplot(aes(x = log_starting_quantity, y = cq)) +
+#   geom_smooth(method = "lm", se = F, color = "grey50", linewidth = 0.5) +
+#   geom_point(aes(fill = factor(conc),color = factor(conc), shape = type), size = 2, alpha = 0.7) +
+#   scale_shape_manual(values = c(21, 24, 22, 25)) +
+#   facet_wrap(~exp_id + pma) +
+#   theme_light()
 
 ```
 
@@ -844,7 +990,7 @@ result_df =
 ```
 
 
-```{r plot observed and predicted data starting concentrations, warning=F, message=F}
+```{r plot observed and predicted data starting concentrations, warning=F, message=F, fig.height=4, fig.width=6}
 
 # reshape to plot data starting concentrations
 data_clean5 = 
@@ -859,7 +1005,7 @@ data_clean4 %>%
 
 
 # plot data of different Total bacterial cell concentrations + lm fit + theoretical PMA effect 
-plot_total_cells_NMID_DPOL = 
+plot_total_cells_NMID_DPOL2 = 
 data_clean5 %>%
  ggplot(aes(x= conc, y = sq_calc_mean, color=pma)) +
   geom_line(data = result_df %>% 
@@ -951,10 +1097,10 @@ data_clean5 %>%
   
 
 # view plot
-plot_total_cells_NMID_DPOL
+plot_total_cells_NMID_DPOL2
 
 # save plot
-ggsave(plot = plot_total_cells_NMID_DPOL, filename = "figures/NMID_ExpII_total_cell_conc_effect_on_PMA_NMID_DPOL_updated.pdf", width = 8, height = 4)
+ggsave(plot = plot_total_cells_NMID_DPOL2, filename = "figures/NMID_ExpII_total_cell_conc_effect_on_PMA_NMID_DPOL_updated.pdf", width = 8, height = 4)
 
 
 ```
@@ -1451,7 +1597,7 @@ ggplot(qPCR_df_avg_clean, aes(x=mean_ct, y=diff_ct, color=factor(Sample))) +
 
 After standard curve QC, regression analysis was applied to assess proportion of explained variance for each primer set's standard curve, and a scatter plot was generated.
 
-```{r standard_curve statistics and plot, warning=F, message=F}
+```{r standard_curve statistics and plot ozone spiking experiment, warning=F, message=F}
 
 # take mean Cq (of technical duplicates) and Log starting quantity for standards
 qPCR_df_avg <- 
